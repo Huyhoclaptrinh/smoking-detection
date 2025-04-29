@@ -42,7 +42,7 @@ You should see a prediction image with bounding boxes saved locally.
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 Main libraries (from `requirements.txt`):
 - `opencv-python`
@@ -52,7 +52,7 @@ Main libraries (from `requirements.txt`):
 
 ---
 
-## 💻 Optional: Jupyter Notebook
+## Optional: Jupyter Notebook
 
 If you prefer running inside Jupyter:
 
@@ -64,7 +64,7 @@ Then open your `.ipynb` file and test modules in cells.
 
 ---
 
-## 🧪 Coming Features
+## Coming Features
 
 - Frame capture every 3s from video
 - Detect smoking behavior per image
@@ -74,7 +74,7 @@ Then open your `.ipynb` file and test modules in cells.
 
 ---
 
-## ✍️ Notes
+## Notes
 
 - Make sure to report progress daily in the team group.
 - Push working code to GitHub regularly.
