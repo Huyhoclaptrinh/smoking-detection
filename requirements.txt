@@ -1,0 +1,17 @@
+# Core libraries
+numpy==1.26.4
+matplotlib
+opencv-python
+opencv-python-headless
+
+# Torch with GPU (CUDA 11.8)
+torch==2.1.0+cu118
+torchvision==0.16.0+cu118
+torchaudio==2.1.0+cu118
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+# YOLOv8
+ultralytics
+
+# Notebook support
+notebook
