@@ -42,4 +42,4 @@ with open(LOG_PATH, mode='w', newline='') as log_file:
                     confidences.append(f"{conf:.2f}")
 
             writer.writerow([filename, count, "; ".join(boxes), "; ".join(confidences)])
-            print(f"[{filename}] ✅ {count} {TARGET_CLASS}(s) detected.")
+            print(f"[{filename}] {count} {TARGET_CLASS}(s) detected.")
