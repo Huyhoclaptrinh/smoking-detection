@@ -1,0 +1,6 @@
+path: ../dataset  # relative path to the dataset folder (hoặc dùng full path nếu cần)
+train: images/train
+val: images/val
+
+nc: 1
+names: ['smoking']
