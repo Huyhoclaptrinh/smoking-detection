@@ -17,3 +17,7 @@ ultralytics
 
 # Notebook support
 notebook
+
+transformers
+einops 
+timm
