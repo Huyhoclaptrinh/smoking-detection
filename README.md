@@ -81,7 +81,7 @@ This will open your webcam, run detection in real time, and create a log file `s
 - Webcam stream with bounding boxes around smoking actions
 - Logged detections in `smoking_detections.log`, e.g.:
   ```
-  2025-05-22 09:45:12 - Detected smoking with confidence 0.91
+  2025-05-22 09:45:12 - Detected cigarette with confidence 0.91
   2025-05-22 09:47:30 - Detected cigarette with confidence 0.86
   ```
 
