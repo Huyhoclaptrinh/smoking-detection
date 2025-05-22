@@ -1,81 +1,102 @@
 
 # Smoking Detection Project
 
-This project focuses on detecting whether a person is smoking in an image or video frame. The system uses YOLOv8 and OpenCV for object detection, and is designed to later support realtime detection and server deployment.
+This project focuses on detecting whether a person is smoking in an image or webcam feed using a YOLOv5 object detection model. It supports real-time detection with OpenCV, automatic logging when smoking is detected, and is inspired by the research at https://github.com/AarnoStormborn/Smoking-Detection.
 
 ---
 
-## Environment Setup
+## 🔧 Environment Setup
 
 ### 1. Create Conda Environment (Python 3.10)
-
 ```bash
 conda create -n smoke-detect-env python=3.10 -y
 conda activate smoke-detect-env
 ```
 
 ### 2. Install Dependencies
-
 ```bash
 pip install -r requirements.txt
 ```
 
-> Ensure you have a compatible GPU (e.g., NVIDIA 1650) with CUDA 11.8. If you don’t use GPU, modify `requirements.txt` accordingly.
+### 3. Install YOLOv5 (Ultralytics version)
+```bash
+git clone https://github.com/ultralytics/yolov5
+cd yolov5
+pip install -r requirements.txt
+```
 
-### 3. Verify Installation
+---
 
-Test OpenCV:
+## 📷 Run Real-Time Detection with Logging
+
+Make sure you have your trained model file (e.g. `weights.pt`) and update the path accordingly:
+
 ```python
 import cv2
-print(cv2.__version__)
+import torch
+import logging
+
+# Logging configuration
+logging.basicConfig(filename='smoking_detections.log',
+                    level=logging.INFO,
+                    format='%(asctime)s - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
+
+# Load model
+model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/epochs_25/weights.pt')
+
+# Open webcam
+cap = cv2.VideoCapture(0)
+window_name = 'Smoking Detection'
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    results = model(frame)
+    annotated = results.render()[0]
+    cv2.imshow(window_name, annotated)
+
+    # Log detections
+    for _, row in results.pandas().xyxy[0].iterrows():
+        if row['name'].lower() in ['smoking', 'smoke', 'cigarette']:
+            logging.info(f"Detected {row['name']} with confidence {row['confidence']:.2f}")
+
+    if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1:
+        break
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
 ```
 
-Test YOLOv8:
-```python
-from ultralytics import YOLO
-
-model = YOLO('yolov8n.pt')
-results = model.predict(source='https://ultralytics.com/images/bus.jpg', save=True)
-```
-
-You should see a prediction image with bounding boxes saved locally.
+This will open your webcam, run detection in real time, and create a log file `smoking_detections.log` whenever smoking is detected.
 
 ---
 
-## Dependencies
+## 📊 Output
 
-Main libraries (from `requirements.txt`):
-- `opencv-python`
-- `torch`, `torchvision`, `torchaudio` (CUDA 11.8)
-- `ultralytics` (YOLOv8)
-- `notebook`, `numpy`, `matplotlib`
-
----
-
-## Optional: Jupyter Notebook
-
-If you prefer running inside Jupyter:
-
-```bash
-jupyter notebook
-```
-
-Then open your `.ipynb` file and test modules in cells.
+- Webcam stream with bounding boxes around smoking actions
+- Logged detections in `smoking_detections.log`, e.g.:
+  ```
+  2025-05-22 09:45:12 - Detected smoking with confidence 0.91
+  2025-05-22 09:47:30 - Detected cigarette with confidence 0.86
+  ```
 
 ---
 
-## Coming Features
+## 📚 Reference
 
-- Frame capture every 3s from video
-- Detect smoking behavior per image
-- Realtime 1–2s clip detection (next phase)
-- Server deployment with cronjob
-- Git-based collaboration (Git flow and coding rules to be defined)
+This project uses data and inspiration from:
+> AarnoStormborn. *Smoking Detection Using YOLOv5*. GitHub Repository: https://github.com/AarnoStormborn/Smoking-Detection
+
+Please cite this work if you use the project in academic or commercial settings.
 
 ---
 
-## Notes
+## ✅ Additional Notes
 
-- Make sure to report progress daily in the team group.
-- Push working code to GitHub regularly.
-- Follow naming conventions and coding guidelines (to be provided separately).
+- If you encounter errors related to CUDA or PyTorch versioning, consider reinstalling `torch` with your specific CUDA version.
+- Compatible with both CPU and GPU setups (GPU preferred for real-time performance).
