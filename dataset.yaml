@@ -1,6 +1,6 @@
-path: ../dataset  # relative path to the dataset folder (hoặc dùng full path nếu cần)
-train: images/train
-val: images/val
+path: ../data_yolov5  # relative path to the dataset folder (hoặc dùng full path nếu cần)
+train: train/images
+val: valid/images
 
 nc: 1
 names: ['smoking']

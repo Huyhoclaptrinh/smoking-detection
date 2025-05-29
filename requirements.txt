@@ -21,3 +21,4 @@ notebook
 transformers
 einops 
 timm
+pygame
