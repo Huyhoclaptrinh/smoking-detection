@@ -30,11 +30,7 @@ pip install -r requirements.txt
 ## 📊 Output
 
 - Webcam stream with bounding boxes around smoking actions
-- Logged detections in `smoking_detections.log`, e.g.:
-  ```
-  2025-05-22 09:45:12 - Detected cigarette with confidence 0.91
-  2025-05-22 09:47:30 - Detected cigarette with confidence 0.86
-  ```
+- Logged detections in `detection_log.csv`.
 
 ---
 
