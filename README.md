@@ -5,7 +5,7 @@ This project focuses on detecting whether a person is smoking in an image or web
 
 ---
 
-## 🔧 Environment Setup
+## Environment Setup
 
 ### 1. Create Conda Environment (Python 3.10)
 ```bash
@@ -25,16 +25,34 @@ cd yolov5
 pip install -r requirements.txt
 ```
 
+## Training Summary (Latest Run)
+
+**Command:**
+```bash
+!cd yolov5 && python train.py --img 640 --batch 8 --epochs 50 --data ../dataset.yaml --weights ../yolov5s.pt --cache disk --workers 0
+```
+
+**Results:**
+- Images: 383
+- Instances: 459
+- Precision (P): 0.819
+- Recall (R): 0.654
+- mAP@0.5: 0.704
+- mAP@0.5:0.95: 0.447
+
+These metrics indicate strong performance in detecting smoking behavior, especially with mAP@0.5 over 70%.
+
 ---
 
-## 📊 Output
+## Output
 
-- Webcam stream with bounding boxes around smoking actions
+- Webcam stream with bounding boxes around smoking actions or behaviors.
+- I have a demo video(Sorry i don't smoke so you can't see any scenes of me holding a cigarette haha).
 - Logged detections in `detection_log.csv`.
 
 ---
 
-## 📚 Reference
+## Reference
 
 This project uses data and inspiration from:
 > AarnoStormborn. *Smoking Detection Using YOLOv5*. GitHub Repository: https://github.com/AarnoStormborn/Smoking-Detection
@@ -43,7 +61,7 @@ Please cite this work if you use the project in academic or commercial settings.
 
 ---
 
-## ✅ Additional Notes
+## Additional Notes
 
 - If you encounter errors related to CUDA or PyTorch versioning, consider reinstalling `torch` with your specific CUDA version.
 - Compatible with both CPU and GPU setups (GPU preferred for real-time performance).
