@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 6
+names: ['Bottle', 'Can', 'Cigarette', 'Cup', 'Hand', 'Mouth']
+
+roboflow:
+  workspace: action-detection-6kig3
+  project: my-first-project-ej0gk
+  version: 11
+  license: Private
+  url: https://app.roboflow.com/action-detection-6kig3/my-first-project-ej0gk/11
