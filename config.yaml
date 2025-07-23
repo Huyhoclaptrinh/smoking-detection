@@ -1,0 +1,9 @@
+GENERAL_MODEL: "yolov8n.pt"                 # COCO pretrained
+SMOKE_MODEL:   "training/epochs_50/smoke.pt"  # model thuốc lá (1 class)
+IMGSZ: 640
+CONF_THRES: 0.25
+DRINK_OBJS: ["bottle", "cup", "wine glass"]
+FRAME_SKIP: 3
+IOU_NEAR: 0.15
+MOUTH_DILATE: 1.4
+OUTPUT_DIR: "outputs"

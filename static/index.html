@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Behavior Detection Uploader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 30px auto; padding: 0 16px; }
+    h1 { margin-bottom: 8px; }
+    .box { border: 1px solid #ddd; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+    #progress { width: 100%; height: 18px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #ddd; padding: 6px 8px; font-size: 14px; text-align: left; }
+    th { background: #f5f5f5; }
+    .hidden { display: none; }
+    .links a { margin-right: 12px; }
+    .error { color: #c00; }
+  </style>
+</head>
+<body>
+  <h1>Smoking/Drinking Behavior Detection</h1>
+  <p>Tải video lên để hệ thống phân tích và trả về log + video overlay.</p>
+
+  <div class="box">
+    <form id="upload-form">
+      <input type="file" name="file" id="file" accept="video/*" required />
+      <button type="submit">Upload & Detect</button>
+    </form>
+    <progress id="progress" value="0" max="100" class="hidden"></progress>
+    <div id="status" class="error"></div>
+  </div>
+
+  <div class="box hidden" id="result-box">
+    <h2>Kết quả</h2>
+    <div class="links" id="download-links"></div>
+    <table id="events-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Frame</th>
+          <th>Timestamp (s)</th>
+          <th>Timestamp (H:M:S)</th>
+          <th>Type</th>
+          <th>Object</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+<script>
+  // --- cấu hình ---
+  const API_BASE = window.location.origin; // đổi nếu front/back khác domain/port
+  const PREDICT_URL = API_BASE + "/predict";
+  const DOWNLOAD_URL = API_BASE + "/download?path=";
+
+  const form = document.getElementById("upload-form");
+  const progress = document.getElementById("progress");
+  const statusEl = document.getElementById("status");
+  const resultBox = document.getElementById("result-box");
+  const tbody = document.querySelector("#events-table tbody");
+  const linksDiv = document.getElementById("download-links");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    statusEl.textContent = "";
+    tbody.innerHTML = "";
+    linksDiv.innerHTML = "";
+    resultBox.classList.add("hidden");
+
+    const fileInput = document.getElementById("file");
+    if (!fileInput.files.length) {
+      statusEl.textContent = "Hãy chọn một video!";
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("file", fileInput.files[0]);
+
+    // Dùng XHR để theo dõi tiến độ
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", PREDICT_URL, true);
+
+    progress.classList.remove("hidden");
+    progress.value = 0;
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        progress.value = (e.loaded / e.total) * 100;
+      }
+    };
+
+    xhr.onerror = () => {
+      statusEl.textContent = "Upload lỗi hoặc không kết nối được API.";
+      progress.classList.add("hidden");
+    };
+
+    xhr.onload = () => {
+      progress.classList.add("hidden");
+      if (xhr.status !== 200) {
+        statusEl.textContent = "API trả về lỗi: " + xhr.responseText;
+        return;
+      }
+      try {
+        const data = JSON.parse(xhr.responseText);
+        showResult(data);
+      } catch (err) {
+        statusEl.textContent = "Không parse được JSON.";
+      }
+    };
+
+    xhr.send(fd);
+  });
+
+  function showResult(data) {
+    // hiển thị link tải
+    if (data.overlay_video) {
+      const a = document.createElement("a");
+      a.href = DOWNLOAD_URL + encodeURIComponent(data.overlay_video);
+      a.textContent = "Tải video overlay";
+      a.target = "_blank";
+      linksDiv.appendChild(a);
+    }
+    if (data.csv) {
+      const a2 = document.createElement("a");
+      a2.href = DOWNLOAD_URL + encodeURIComponent(data.csv);
+      a2.textContent = "Tải file CSV";
+      a2.target = "_blank";
+      linksDiv.appendChild(a2);
+    }
+
+    // render events
+    (data.events || []).forEach((ev, idx) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${ev.frame_idx}</td>
+        <td>${ev.timestamp}</td>
+        <td>${ev.timestamp_hms}</td>
+        <td>${ev.type}</td>
+        <td>${ev.obj_name ?? ""}</td>
+        <td>${ev.score.toFixed ? ev.score.toFixed(3) : ev.score}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    resultBox.classList.remove("hidden");
+  }
+</script>
+</body>
+</html>

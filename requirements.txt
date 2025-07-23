@@ -1,25 +1,30 @@
-# Core libraries
-numpy==1.26.4
-matplotlib
+# Core
+numpy>=1.24
 opencv-python
-opencv-python-headless
 pillow
-requests 
-mediapipe
+requests
+pandas
 
-# Torch with GPU (CUDA 11.8)
-torch==2.1.0+cu118
-torchvision==0.16.0+cu118
-torchaudio==2.1.0+cu118
---extra-index-url https://download.pytorch.org/whl/cu118
+# Torch + YOLO
+ultralytics>=8.2.0
+# (Tuỳ GPU) cài torch phù hợp: https://pytorch.org/get-started/locally/
+# ví dụ CUDA 11.8:
+# torch==2.1.0+cu118
+# torchvision==0.16.0+cu118
+# torchaudio==2.1.0+cu118
+# --extra-index-url https://download.pytorch.org/whl/cu118
 
-# YOLOv8
-ultralytics
+# FastAPI
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+pydantic>=2.7.0
+pyyaml>=6.0.1
+loguru>=0.7.2
 
-# Notebook support
+# DB
+sqlalchemy>=2.0
+pymysql>=1.1.0
+
+# Notebook (tuỳ chọn)
 notebook
-
-transformers
-einops 
-timm
-pygame
