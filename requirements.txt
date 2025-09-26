@@ -4,6 +4,8 @@ opencv-python
 pillow
 requests
 pandas
+transformers
+sentencepiece
 
 # Torch + YOLO
 ultralytics>=8.2.0
@@ -21,6 +23,7 @@ python-multipart>=0.0.9
 pydantic>=2.7.0
 pyyaml>=6.0.1
 loguru>=0.7.2
+googletrans==4.0.0-rc1
 
 # DB
 sqlalchemy>=2.0
@@ -28,3 +31,5 @@ pymysql>=1.1.0
 
 # Notebook (tuỳ chọn)
 notebook
+moviepy
+openai-whisper

@@ -1,9 +1,163 @@
-GENERAL_MODEL: "yolov8n.pt"                 # COCO pretrained
-SMOKE_MODEL:   "training/epochs_50/smoke.pt"  # model thuốc lá (1 class)
-IMGSZ: 640
-CONF_THRES: 0.25
+# ================== COMMON (GENERAL DETECTOR) ==================
+GENERAL_MODEL:  "training/epochs_25/best.pt"
+IMGSZ:          640
+CONF_THRES:     0.25
+FRAME_SKIP:     1                  # xử lý mọi frame để bảng kết quả hiển thị full
+OUTPUT_DIR:     "outputs"
 DRINK_OBJS: ["bottle", "cup", "wine glass"]
-FRAME_SKIP: 3
-IOU_NEAR: 0.15
-MOUTH_DILATE: 1.4
-OUTPUT_DIR: "outputs"
+
+# ================== SMOKE PIPELINE ==================
+SMOKE_WEIGHT_MODEL: "training/epochs_50/smoke_weights.pt"   # đặt null nếu không dùng
+SMOKE_MODEL:        "training/epochs_25/smoke.pt"
+SMOKE_RAW_DIR:      "feedback_raw/smoke"
+SMOKE_PROC_DIR:     "feedback_proc/smoke"
+MIN_FB_SMOKE:       1
+EPOCHS_FINETUNE_SMOKE: 5
+LR0_SMOKE:          1e-4
+
+# ================== CALIBRATOR ==================
+SMOKE_CALIB_PATH:           "training/calibrators/smoke_calib.pkl"
+DRINK_CALIB_PATH:           "training/calibrators/drink_calib.pkl"
+CALIB_LOG_DIR:              "training/cal_data"
+CALIB_MIN_ROWS:             80
+CALIB_RETRAIN_INTERVAL_SEC: 1800
+UNKNOWN_MIN_CONF:           0.60
+EMIT_UNKNOWN:               false
+
+# ================== DRINK PIPELINE ==================
+DRINK_RAW_DIR:           "feedback_raw/drink"
+DRINK_PROC_DIR:          "feedback_proc/drink"
+MIN_FB_DRINK:            1
+EPOCHS_FINETUNE_DRINK:   5
+LR0_DRINK:               1e-4
+
+# ================== CLASS LABELS ==================
+NC: 3
+NAMES: ["smoke", "drink", "none"]
+
+# ================== AUTH ==================
+AUTH_SECRET: "uHt7kGec2HnKCsRt3PZ0UNXg3uKdxcvYFXy_BshM5T0Wm6tjyZJkmKOc2hhFGuN4Ee6RG-4U7QQLhodTg69I5Q"
+AUTH_EXPIRES_MIN: 4320  # 3 ngày
+
+# ================== EXTRA (POSTPROCESS & HEURISTICS) ==================
+KEEP_CLASSES: ["bottle", "cup", "wine glass", "cigarette"]
+MERGE_IOU: 0.5
+PRIORITY_WEIGHTS:
+  cigarette: 1.10
+  bottle: 1.05
+
+SMOKE_STRICT_CONF: 0.72
+DRINK_YOLO_SHORTCUT_CONF: 0.60
+DRINK_MIN_AREA_FRAC: 0.0008
+
+# Log unknown ở mọi frame rỗng để "show full frame" trong bảng kết quả
+EMIT_UNKNOWN_FOR_EMPTY_FRAMES: true
+
+# ================== DEBUG ÁNH SÁNG (tuỳ chọn) ==================
+LIGHT_DIAG_ENABLE: true
+LIGHT_DIAG_STRIDE: 15
+LIGHT_DIAG_CENTER_FRAC: 0.85
+LIGHT_DIAG_OVERLAY: true
+LIGHT_DIAG_LOG_JSONL: false
+
+# ================== HAND–MOUTH & BORROW ==================
+HAND_NEAR_DIST_FRAC: 0.12          # ngưỡng d_norm tay-miệng gần
+HAND_DIAG_ENABLE: true
+HAND_DIAG_STRIDE: 5
+HAND_DIAG_OVERLAY: true
+HAND_DIAG_LOG_JSONL: true
+USE_BOTTLE_TIP_AS_HAND: true
+
+# MediaPipe
+USE_MEDIAPIPE: true
+MP_MIN_DET_CONF: 0.40
+MP_MIN_TRACK_CONF: 0.40
+
+# Cho phép emit unknown ở mọi frame (để bảng có đủ dòng)
+SHOW_ALL_FRAMES: true
+
+# YOLO low-conf riêng cho dò container khi frame chính không chắc
+GENERAL_CONF_FOR_DRINK: 0.05
+
+# --- Borrow theo khoảng cách tay–miệng ---
+BORROW_WINDOW_SEC: 0.60
+BORROW_DECAY: 0.95
+DIST_MATCH_EPS: 0.12               # |d_curr - d_prev| <= 0.12
+DIST_MATCH_RATIO_EPS: 0.45         # sai lệch tỉ lệ <= 45%
+BORROW_MIN_OUT_SCORE: 0.55
+
+# --- “Gần hơn thì assume drink” ---
+CLOSER_ASSUME_DRINK: true
+CLOSER_WINDOW_SEC: 1.20
+CLOSER_MARGIN: 0.04
+CLOSER_MIN_PREV_SCORE: 0.60
+
+# --- Container-assist borrow ---
+CONTAINER_ASSIST_BORROW: true
+CONTAINER_MIN_CONF_BORROW: 0.48
+CONTAINER_IOU_BORROW: 0.05
+DIST_ALLOW_UP_IF_CONTAINER: 0.12    # cho phép d_norm tăng nhẹ so với prev nếu còn container
+
+# =====================================================================
+# ================== MIRROR (lowercase) CHO BehaviorDetector ==========
+# =====================================================================
+general_model_path: "training/epochs_25/best.pt"
+smoke_model_path:   "training/epochs_25/smoke.pt"
+smoke_weight_path:  "training/epochs_50/smoke_weights.pt"
+
+imgsz: 640
+conf_thres: 0.25
+frame_skip: 1
+output_dir: "outputs"
+
+unknown_min_conf: 0.60
+emit_unknown: false
+
+drink_objs: ["bottle", "cup", "wine glass"]
+
+keep_classes: ["bottle", "cup", "wine glass", "cigarette"]
+merge_iou: 0.5
+priority_weights:
+  cigarette: 1.10
+  bottle: 1.05
+
+smoke_strict_conf: 0.72
+drink_yolo_shortcut_conf: 0.60
+drink_min_area_frac: 0.0008
+
+emit_unknown_for_empty_frames: true
+show_all_frames: true
+
+# Hand–mouth (lowercase)
+hand_near_dist_frac: 0.12
+hand_diag_enable: true
+hand_diag_stride: 5
+hand_diag_overlay: true
+hand_diag_log_jsonl: true
+use_bottle_tip_as_hand: true
+
+# MediaPipe
+use_mediapipe: true
+mp_min_det_conf: 0.40
+mp_min_track_conf: 0.40
+
+# YOLO low-conf cho drink
+general_conf_for_drink: 0.05
+
+# Borrow / closer (lowercase)
+borrow_window_sec: 0.60
+borrow_decay: 0.95
+dist_match_eps: 0.12
+dist_match_ratio_eps: 0.45
+borrow_min_out_score: 0.55
+
+closer_assume_drink: true
+closer_window_sec: 1.20
+closer_margin: 0.04
+closer_min_prev_score: 0.60
+
+# Container-assist (lowercase)
+container_assist_borrow: true
+container_min_conf_borrow: 0.48
+container_iou_borrow: 0.05
+dist_allow_up_if_container: 0.12

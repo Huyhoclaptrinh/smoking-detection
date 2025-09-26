@@ -1,0 +1,601 @@
+<!-- app/static/index.html -->
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Behavior Detection Uploader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#fff; --muted:#6b7280; --border:#e5e7eb;
+      --primary:#2563eb; --smoke:#991b1b; --drink:#065f46; --unknown:#374151;
+    }
+    body{ background:var(--bg); color:#111; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+          max-width: 980px; margin: 28px auto; padding: 0 16px; }
+    h1{ font-size:28px; line-height:1.2; margin-bottom:12px; }
+    .box{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; box-shadow:0 8px 24px rgba(0,0,0,.05); margin-bottom: 22px; }
+
+    .hidden{ display:none !important; }
+    .error{ color:#b91c1c; }
+    .tabs button { margin-right:8px; }
+    button, .btn{
+      border:1px solid var(--border); background:#fff; padding:8px 12px; border-radius:10px;
+      cursor:pointer; font-weight:600; transition:.15s ease; box-shadow:0 1px 0 rgba(0,0,0,.02);
+    }
+    button:hover{ transform:translateY(-1px); }
+    .btn-primary{ background:var(--primary); color:#fff; border-color:transparent; }
+    .btn-ghost{ background:transparent; }
+    progress{ height:10px; border:none; background:#eef2ff; border-radius:999px; overflow:hidden }
+    progress::-webkit-progress-bar{ background:#eef2ff }
+    progress::-webkit-progress-value{ background:var(--primary) }
+
+    /* Table */
+    #events-table{ width:100%; border-collapse:separate; border-spacing:0; }
+    #events-table th, #events-table td{ padding:10px 12px; font-size:14px; border-bottom:1px solid var(--border); }
+    #events-table thead th{ position:sticky; top:0; background:#f8fafc; z-index:1; font-weight:700; }
+    #events-table tbody tr:nth-child(odd){ background:#fcfcfd; }
+    #events-table tbody tr:hover{ background:#f1f5f9; }
+
+    .chip{ display:inline-flex; align-items:center; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:700; }
+    .chip.smoke{ background:#fee2e2; color:var(--smoke); }
+    .chip.drink{ background:#dcfce7; color:var(--drink); }
+    .chip.unknown{ background:#e5e7eb; color:var(--unknown); }
+    .badge{ display:inline-block; padding:2px 8px; border-radius:8px; background:#e2e8f0; color:#334155; font-size:12px; }
+
+    .scorewrap{ display:flex; align-items:center; gap:8px; min-width:160px; }
+    .scorebar{ flex:1; height:8px; background:#eef2ff; border-radius:999px; overflow:hidden; }
+    .scorebar i{ display:block; height:100%; width:0; background:#4f46e5; }
+    .scoreval{ font-variant-numeric: tabular-nums; font-size:12px; color:#111; }
+    .links a{ text-decoration:none; margin-right:12px; font-weight:600; color:var(--primary); }
+
+    /* === Feedback modal === */
+    .modal{position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.45); z-index:50; }
+    .modal .card{ background:#fff; width:520px; max-width:calc(100% - 32px);
+      border:1px solid var(--border); border-radius:14px; padding:16px 18px; box-shadow:0 12px 30px rgba(0,0,0,.2);}
+    .modal .row{ display:flex; gap:10px; align-items:center; margin:10px 0; flex-wrap:wrap;}
+    .modal h3{ margin:0 0 6px 0; font-size:18px;}
+    .modal .muted{ color:var(--muted); font-size:13px;}
+    .modal .actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:14px;}
+    .modal .row.hidden{ display:none !important; }
+    .radio{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--border);
+      border-radius:10px; cursor:pointer; user-select:none;}
+    .radio input{ margin:0; }
+    select, textarea{ width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:10px;}
+    #overlay-col { display: none !important; }
+  </style>
+</head>
+
+<body>
+  <h1>Smoking/Drinking Behavior Detection</h1>
+
+  <!-- Auth -->
+  <div class="box" id="auth-box">
+    <div class="tabs">
+      <button id="tab-login" class="btn-primary">Đăng nhập</button>
+      <button id="tab-register">Đăng ký</button>
+    </div>
+
+    <div id="login-pane">
+      <p>Email: <input id="login-email" type="email" /></p>
+      <p>Mật khẩu: <input id="login-pass" type="password" /></p>
+      <button id="btn-login">Đăng nhập</button>
+    </div>
+
+    <div id="register-pane" class="hidden">
+      <p>Email: <input id="reg-email" type="email" /></p>
+      <p>Họ tên (tuỳ chọn): <input id="reg-name" /></p>
+      <p>Mật khẩu: <input id="reg-pass" type="password" /></p>
+      <p>Nhập lại mật khẩu: <input id="reg-pass2" type="password" /></p>
+      <button id="btn-register">Tạo tài khoản</button>
+    </div>
+
+    <div id="auth-status" class="error"></div>
+  </div>
+
+  <!-- User bar -->
+  <div class="box hidden" id="user-box">
+    Bạn đã đăng nhập: <b id="user-email"></b>
+    <button id="btn-logout" style="float:right;">Đăng xuất</button>
+  </div>
+
+  <!-- Uploader -->
+  <div class="box hidden" id="uploader">
+    <form id="upload-form" enctype="multipart/form-data">
+      <input type="file" id="file" name="file" accept="video/*" />
+      <button type="submit">Upload & Detect</button>
+    </form>
+    <progress id="progress" value="0" max="100" class="hidden"></progress>
+    <div id="status" class="error"></div>
+  </div>
+
+  <!-- Player -->
+  <div class="box hidden" id="player-box">
+    <h2>Video</h2>
+    <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap">
+      <div id="overlay-col" style="flex:1 1 520px;">
+        <div style="font-weight:600; margin-bottom:6px">Overlay (có khung phát hiện)</div>
+        <video id="player-overlay" controls playsinline style="width:100%; max-height:520px; background:#000; border-radius:12px;"></video>
+        <div id="player-overlay-hint" class="muted" style="margin-top:6px"></div>
+      </div>
+
+      <div style="flex:1 1 420px;">
+        <div style="font-weight:600; margin-bottom:6px">Bản gốc</div>
+        <video id="player-original" controls playsinline style="width:100%; max-height:420px; background:#000; border-radius:12px;"></video>
+        <div id="player-original-hint" class="muted" style="margin-top:6px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="box hidden" id="result-box">
+    <h2>Kết quả</h2>
+    <div class="links" id="download-links"></div>
+    <table id="events-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Frame</th><th>Timestamp (s)</th><th>H:M:S</th>
+          <th>Type</th><th>Object</th><th id="th-score" title="Click để sắp xếp">Score</th><th>Feedback</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Feedback Modal -->
+  <div id="fb-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="card">
+      <h3>Gửi phản hồi</h3>
+      <div class="muted" id="fb-summary"></div>
+
+      <div class="row" style="margin-top:12px">
+        <span style="min-width:80px;">Nhãn đúng:</span>
+        <label class="radio"><input type="radio" name="fb-type" value="smoke"> Smoke</label>
+        <label class="radio"><input type="radio" name="fb-type" value="drink"> Drink</label>
+        <label class="radio"><input type="radio" name="fb-type" value="none"> None</label>
+      </div>
+
+      <div class="row hidden" id="fb-drink-row">
+        <span style="min-width:80px;">Đồ uống:</span>
+        <label class="radio"><input type="radio" name="fb-drink" value="bottle"> bottle</label>
+        <label class="radio"><input type="radio" name="fb-drink" value="cup"> cup</label>
+        <label class="radio"><input type="radio" name="fb-drink" value="wine glass"> wine glass</label>
+      </div>
+
+      <div class="row hidden" id="fb-smoke-row">
+        <span style="min-width:80px;">Đồ hút:</span>
+        <label class="radio"><input type="radio" name="fb-smoke" value="cigarette"> cigarette</label>
+      </div>
+
+      <div style="margin-top:6px">
+        <div class="muted" style="margin-bottom:6px">Ghi chú (tuỳ chọn)</div>
+        <textarea id="fb-note" rows="3" placeholder="Ví dụ: phát hiện nhầm, góc khuất, v.v."></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="fb-cancel">Huỷ</button>
+        <button class="btn-primary" id="fb-send" type="button">Gửi phản hồi</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  /** ====== Endpoints ====== **/
+  const API_BASE     = window.location.origin;
+  const PREDICT_URL  = API_BASE + "/predict";
+  const DOWNLOAD_URL = API_BASE + "/housekeeping/download?path=";
+  const LOGIN_URL    = API_BASE + "/auth/login";
+  const REG_URL      = API_BASE + "/auth/register";
+  const LOGOUT_URL   = API_BASE + "/auth/logout";
+  const ME_URL       = API_BASE + "/auth/me";
+  const FEEDBACK_URL = API_BASE + "/feedback";
+
+  /** ====== Elements ====== **/
+  const authBox   = document.getElementById("auth-box");
+  const userBox   = document.getElementById("user-box");
+  const uploader  = document.getElementById("uploader");
+  const authStatus= document.getElementById("auth-status");
+  const userEmail = document.getElementById("user-email");
+  const tabLogin  = document.getElementById("tab-login");
+  const tabReg    = document.getElementById("tab-register");
+  const loginPane = document.getElementById("login-pane");
+  const regPane   = document.getElementById("register-pane");
+
+  tabLogin.onclick = () => { loginPane.classList.remove("hidden"); regPane.classList.add("hidden"); authStatus.textContent=""; tabLogin.classList.add("btn-primary"); tabReg.classList.remove("btn-primary"); };
+  tabReg.onclick   = () => { regPane.classList.remove("hidden"); loginPane.classList.add("hidden"); authStatus.textContent=""; tabReg.classList.add("btn-primary"); tabLogin.classList.remove("btn-primary"); };
+
+  function setLoggedIn(email){
+    authBox.classList.add("hidden");
+    userBox.classList.remove("hidden");
+    uploader.classList.remove("hidden");
+    userEmail.textContent = email || "";
+  }
+  function setLoggedOut(){
+    authBox.classList.remove("hidden");
+    userBox.classList.add("hidden");
+    uploader.classList.add("hidden");
+    userEmail.textContent = "";
+  }
+
+  function formBody(obj){ const p = new URLSearchParams(); Object.entries(obj).forEach(([k,v]) => p.append(k, v ?? "")); return p; }
+  async function tryFetchJson(url, opts={}) {
+    const res = await fetch(url, { credentials:"include", ...opts });
+    const text = await res.text();
+    let data={}; try{ data = text? JSON.parse(text):{}; }catch{}
+    if(!res.ok) throw new Error((data && (data.detail||data.error)) || (`HTTP ${res.status}: ${text||res.statusText}`));
+    return data;
+  }
+  async function doLogin(email, password){
+    try{
+      return await tryFetchJson(LOGIN_URL,{method:"POST", headers:{ "Content-Type":"application/x-www-form-urlencoded"}, body:formBody({email,password})});
+    }catch{
+      return await tryFetchJson(LOGIN_URL,{method:"POST", headers:{ "Content-Type":"application/json"}, body:JSON.stringify({email,password})});
+    }
+  }
+  async function doRegister(email, full_name, password){
+    try{
+      return await tryFetchJson(REG_URL,{method:"POST", headers:{ "Content-Type":"application/x-www-form-urlencoded"}, body:formBody({email,full_name,password})});
+    }catch{
+      return await tryFetchJson(REG_URL,{method:"POST", headers:{ "Content-Type":"application/json"}, body:JSON.stringify({email,full_name,password})});
+    }
+  }
+  async function doLogout(){ try{ await tryFetchJson(LOGOUT_URL,{method:"POST"});}catch{} }
+  async function checkMe(){ try{ const u = await tryFetchJson(ME_URL,{method:"GET"}); setLoggedIn(u.email || ""); }catch{ setLoggedOut(); } }
+
+  document.getElementById("btn-login").onclick = async () => {
+    authStatus.textContent = "";
+    const email = document.getElementById("login-email").value.trim();
+    const pass  = document.getElementById("login-pass").value;
+    if(!email || !pass){ authStatus.textContent="Nhập email & mật khẩu"; return; }
+    try{ await doLogin(email, pass); setLoggedIn(email); }catch(e){ authStatus.textContent = e.message; }
+  };
+  document.getElementById("btn-register").onclick = async () => {
+    authStatus.textContent = "";
+    const email = document.getElementById("reg-email").value.trim();
+    const full_name = document.getElementById("reg-name").value.trim();
+    const p1 = document.getElementById("reg-pass").value;
+    const p2 = document.getElementById("reg-pass2").value;
+    if(!email || !p1){ authStatus.textContent="Nhập email & mật khẩu"; return; }
+    if(p1 !== p2){ authStatus.textContent="Mật khẩu nhập lại không khớp"; return; }
+    try{ await doRegister(email, full_name, p1); authStatus.textContent="✅ Tạo tài khoản thành công. Hãy đăng nhập."; tabLogin.click(); }catch(e){ authStatus.textContent = e.message; }
+  };
+  document.getElementById("btn-logout").onclick = async () => { await doLogout(); setLoggedOut(); };
+
+  /** ====== Upload & Detect ====== **/
+  let currentEvents=[], currentVideoName=null, currentFps=30;
+  const form = document.getElementById("upload-form");
+  const progress = document.getElementById("progress");
+  const statusEl = document.getElementById("status");
+  const tbody = document.querySelector("#events-table tbody");
+  const linksDiv = document.getElementById("download-links");
+  const resultBox = document.getElementById("result-box");
+
+  form.addEventListener("submit",(e)=>{
+    e.preventDefault();
+    statusEl.textContent=""; tbody.innerHTML=""; linksDiv.innerHTML=""; resultBox.classList.add("hidden");
+    const fileInput = document.getElementById("file");
+    if(!fileInput.files.length){ statusEl.textContent="Hãy chọn video"; return; }
+    const fd = new FormData(); fd.append("file", fileInput.files[0]);
+    const xhr = new XMLHttpRequest(); xhr.open("POST", PREDICT_URL, true); xhr.withCredentials = true;
+    progress.classList.remove("hidden"); progress.value=0;
+    xhr.upload.onprogress = ev => { if(ev.lengthComputable) progress.value = ev.loaded/ev.total*100; };
+    xhr.onerror = ()=>{ statusEl.textContent="Không kết nối được API."; progress.classList.add("hidden"); };
+    xhr.onload = ()=>{
+      progress.classList.add("hidden");
+      if(xhr.status===401){ statusEl.textContent="Cần đăng nhập trước."; setLoggedOut(); return; }
+      if(xhr.status!==200){ statusEl.textContent="API lỗi: "+xhr.responseText; return; }
+      let data; try{ data = JSON.parse(xhr.responseText); }catch{ statusEl.textContent="Không parse được JSON"; return; }
+      renderResult(data);
+    };
+    xhr.send(fd);
+  });
+
+  function renderResult(data){
+    currentEvents    = data.events || [];
+    currentVideoName = data.video_name || null;
+    currentFps       = Number(data.fps)||currentFps||30;
+
+    // expose cho handler
+    window.currentVideoName = currentVideoName;
+    window.currentFps       = currentFps;
+
+    // === Chuẩn hoá tên video để gửi feedback ===
+    function deriveSafeVideoName(data, fallback) {
+      // Ưu tiên lấy từ original_video/overlay_video (đường dẫn tải về chắc chắn có đuôi)
+      const pick = data.original_video || data.overlay_video || "";
+      const s = String(pick || fallback || "").replace(/\\/g, "/");
+      // lấy basename + ext
+      const m = s.match(/([^\/]+)\.(mp4|mov|avi|mkv|webm)$/i);
+      if (m) {
+        const base = `${m[1]}.${m[2]}`;     // uuid.ext
+        // luôn trả về dưới uploads/ (BE đang tìm trong uploads)
+        return `uploads/${base}`;
+      }
+      // fallback từ currentVideoName: lấy stem + thêm .mp4 nếu thiếu
+      let base = s.split("/").pop() || "";
+      if (!/\.(mp4|mov|avi|mkv|webm)$/i.test(base)) base = `${base}.mp4`;
+      return `uploads/${base}`;
+    }
+    window.safeVideoName = deriveSafeVideoName(data, currentVideoName);
+
+    // ====== Player ======
+    const playerBox   = document.getElementById("player-box");
+    const vOverlay    = document.getElementById("player-overlay");
+    const vOriginal   = document.getElementById("player-original");
+    const hintOverlay = document.getElementById("player-overlay-hint");
+    const hintOriginal= document.getElementById("player-original-hint");
+
+    [vOverlay, vOriginal].forEach(v=>{ if (v) { v.src = ""; v.removeAttribute("poster"); }});
+    if (hintOverlay)  hintOverlay.textContent  = "";
+    if (hintOriginal) hintOriginal.textContent = "";
+
+    let hasAnyVideo = false;
+    if (data.overlay_video) {
+      vOverlay.src = DOWNLOAD_URL + encodeURIComponent(data.overlay_video);
+      hintOverlay.textContent = "Bạn có thể click vào một hàng sự kiện để tua tới thời điểm tương ứng.";
+      hasAnyVideo = true;
+    }
+    if (data.original_video) {
+      vOriginal.src = DOWNLOAD_URL + encodeURIComponent(data.original_video);
+      hintOriginal.textContent = "Bản gốc không có khung phát hiện.";
+      hasAnyVideo = true;
+    }
+    if (hasAnyVideo) playerBox.classList.remove("hidden"); else playerBox.classList.add("hidden");
+
+    // ====== Links ======
+    linksDiv.innerHTML = "";
+    if (data.overlay_video) {
+      const a = document.createElement("a");
+      a.href = DOWNLOAD_URL + encodeURIComponent(data.overlay_video);
+      a.textContent = "Tải video overlay"; a.target = "_blank";
+      linksDiv.appendChild(a);
+    }
+    if (data.csv) {
+      const a2 = document.createElement("a");
+      a2.href = DOWNLOAD_URL + encodeURIComponent(data.csv);
+      a2.textContent = "Tải file CSV"; a2.target = "_blank";
+      linksDiv.appendChild(a2);
+    }
+    if (data.original_video) {
+      const a3 = document.createElement("a");
+      a3.href = DOWNLOAD_URL + encodeURIComponent(data.original_video);
+      a3.textContent = "Tải video gốc"; a3.target = "_blank";
+      linksDiv.appendChild(a3);
+    }
+
+    // ====== Table ======
+    tbody.innerHTML = (currentEvents.map((ev, idx) => {
+      const score = Number(ev.score) || 0;
+      const pct = Math.max(0, Math.min(100, Math.round(score * 100)));
+      const type = (ev.type || "unknown").toLowerCase();
+      const chipClass = ["smoke","drink"].includes(type) ? type : "unknown";
+      const obj = ev.obj_name ? `<span class="badge">${ev.obj_name}</span>` : "—";
+      const hms = ev.timestamp_hms || secsToHMS(ev.timestamp);
+      return `
+        <tr data-idx="${idx}" style="cursor:pointer">
+          <td>${idx + 1}</td>
+          <td>${ev.frame_idx ?? ""}</td>
+          <td>${(Number(ev.timestamp)||0).toFixed(2)}</td>
+          <td>${hms}</td>
+          <td><span class="chip ${chipClass}">${type}</span></td>
+          <td>${obj}</td>
+          <td>
+            <div class="scorewrap" aria-label="${score.toFixed(3)}">
+              <div class="scorebar"><i style="width:${pct}%"></i></div>
+              <span class="scoreval">${score.toFixed(3)}</span>
+            </div>
+          </td>
+          <td><button class="btn btn-ghost" type="button" data-idx="${idx}">Báo lỗi</button></td>
+        </tr>`;
+    }).join(""));
+
+    // ====== Bind nút "Báo lỗi" ======
+    tbody.querySelectorAll('button[data-idx]').forEach(btn => {
+      btn.type = "button";
+      btn.addEventListener("click", (ev) => {
+        try{
+          ev.preventDefault();
+          ev.stopPropagation();
+          const idx = Number(btn.dataset.idx);
+          if (Number.isNaN(idx)) throw new Error("invalid idx");
+          openFeedback(idx);
+        }catch(e){
+          console.error("[feedback] open error:", e);
+          alert("Không mở được hộp thoại feedback. Xem console để biết chi tiết.");
+        }
+      }, { passive:false });
+    });
+
+    // ====== Click hàng để tua video ======
+    const seekPlayer = (document.getElementById("player-overlay")?.src)
+                        ? document.getElementById("player-overlay")
+                        : document.getElementById("player-original");
+    if (seekPlayer && seekPlayer.src) {
+      function highlightRow(r){
+        tbody.querySelectorAll("tr").forEach(tr=> tr.style.background="");
+        if (r) r.style.background = "#fff7ed";
+      }
+      tbody.querySelectorAll('tr[data-idx]').forEach(tr=>{
+        tr.addEventListener("click", (e)=>{
+          if (e.target && e.target.closest && e.target.closest('button[data-idx]')) return;
+          const idx = Number(tr.getAttribute("data-idx"));
+          const ev = currentEvents[idx];
+          if (!ev) return;
+          const t = Number(ev.timestamp)||0;
+          try{ seekPlayer.currentTime = Math.max(0, t); }catch{}
+          if (seekPlayer.paused) { seekPlayer.play().catch(()=>{}); }
+          highlightRow(tr);
+        });
+      });
+    }
+
+    // ====== Sort theo score ======
+    const thScore = document.getElementById("th-score");
+    if (thScore && !thScore.dataset.bound) {
+      thScore.dataset.bound = "1";
+      thScore.style.cursor = "pointer";
+      thScore.addEventListener("click", () => {
+        currentEvents.sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0));
+        renderResult({
+          events: currentEvents,
+          video_name: currentVideoName,
+          overlay_video: data.overlay_video,
+          csv: data.csv,
+          original_video: data.original_video,
+          fps: currentFps
+        });
+      });
+    }
+    resultBox.classList.remove("hidden");
+  }
+
+  function secsToHMS(sec){
+    sec = Number(sec)||0;
+    const h = Math.floor(sec/3600);
+    const m = Math.floor((sec%3600)/60);
+    const s = Math.floor(sec%60);
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  /** ====== Feedback ====== **/
+  let fbIdx = null;
+
+  function updateByType(){
+    const v = document.querySelector('input[name="fb-type"]:checked')?.value || "";
+    document.getElementById("fb-drink-row").classList.toggle("hidden", v !== "drink");
+    document.getElementById("fb-smoke-row").classList.toggle("hidden", v !== "smoke");
+  }
+
+  function openFeedback(idx){
+    fbIdx = idx;
+    const ev = currentEvents[idx];
+    if(!ev) return;
+    document.getElementById("fb-summary").textContent =
+      `Sửa cho hàng #${idx+1} • frame=${ev.frame_idx ?? "?"} • ts=${ev.timestamp ?? "?"} • dự đoán="${ev.type}"`;
+    document.querySelectorAll('input[name="fb-type"]').forEach(i => i.checked = false);
+    document.querySelectorAll('input[name="fb-drink"]').forEach(i => i.checked = false);
+    document.getElementById("fb-note").value = "";
+    updateByType();
+    document.getElementById("fb-modal").classList.remove("hidden");
+  }
+
+  document.querySelectorAll('input[name="fb-type"]').forEach(r=>{
+    r.addEventListener('change', updateByType);
+  });
+
+  document.getElementById("fb-cancel").onclick = ()=> {
+    document.getElementById("fb-modal").classList.add("hidden");
+  };
+
+  // ---- Helper: stringify error JSON rõ ràng ----
+  function humanizeError(status, text, data) {
+    if (data && typeof data === 'object') {
+      try {
+        if (Array.isArray(data.detail)) return `HTTP ${status}: ` + JSON.stringify(data.detail, null, 2);
+        if (data.detail) return `HTTP ${status}: ` + JSON.stringify(data.detail);
+        if (data.error)  return `HTTP ${status}: ` + JSON.stringify(data.error);
+        return `HTTP ${status}: ` + JSON.stringify(data);
+      } catch(_) {}
+    }
+    return `HTTP ${status}: ${text}`;
+  }
+
+  // ---- Helper: remove null/undefined/empty-string ----
+  function compact(obj){
+    const out = {};
+    Object.entries(obj).forEach(([k,v])=>{
+      if (v === null || v === undefined) return;
+      if (typeof v === 'string' && v.trim() === '') return;
+      if (Array.isArray(v)) out[k] = v.map(Number).filter(x => Number.isFinite(x));
+      else out[k] = v;
+    });
+    return out;
+  }
+
+  document.getElementById("fb-send").onclick = async ()=>{
+    if (fbIdx == null) return;
+
+    const ev  = currentEvents[fbIdx] || {};
+    const typ = document.querySelector('input[name="fb-type"]:checked')?.value;
+    if (!typ) { alert("Chọn nhãn đúng (smoke/drink/none)"); return; }
+
+    let obj_name = null;
+    if (typ === "drink") {
+      obj_name = document.querySelector('input[name="fb-drink"]:checked')?.value || null;
+      if (!obj_name) { alert("Chọn đồ uống: bottle/cup/wine glass"); return; }
+    } else if (typ === "smoke") {
+      obj_name = document.querySelector('input[name="fb-smoke"]:checked')?.value || null;
+      if (!obj_name) { alert("Chọn loại: cigarette"); return; }
+    }
+
+    // Đảm bảo có số hợp lệ cho frame_idx / timestamp
+    const fps = Number(window.currentFps) || 30;
+    let frame_idx = Number(ev.frame_idx);
+    let timestamp = Number(ev.timestamp);
+    if (!Number.isFinite(frame_idx) && Number.isFinite(timestamp)) frame_idx = Math.max(0, Math.round(timestamp * fps));
+    if (!Number.isFinite(timestamp) && Number.isFinite(frame_idx)) timestamp = frame_idx / fps;
+    if (!Number.isFinite(frame_idx)) frame_idx = 0;
+    if (!Number.isFinite(timestamp)) timestamp = 0;
+
+    const box_xyxy = Array.isArray(ev.box_xyxy) && ev.box_xyxy.length === 4 ? ev.box_xyxy : [];
+    const pred_box_xyxy = Array.isArray(ev.pred_box_xyxy) ? ev.pred_box_xyxy : [];
+
+    // Payload tối giản, tránh extra fields
+    const basePayload = {
+      video_name: String(currentVideoName  || ""),
+      frame_idx,
+      timestamp,
+      pred_type: String(ev.type || "unknown"),
+      correct_type: typ,
+      correct_obj: obj_name || "",
+      box_xyxy,
+      pred_box_xyxy,
+    };
+    if (ev.obj_name && String(ev.obj_name).trim()) basePayload.pred_obj = String(ev.obj_name).trim();
+
+    console.log('[feedback] video_name sending =', currentVideoName);
+
+    const payload = compact(basePayload);
+
+    const btnSend = document.getElementById("fb-send");
+    const btnTextBak = btnSend.textContent;
+    btnSend.disabled = true;
+    btnSend.textContent = "Đang gửi...";
+
+    try {
+      const res  = await fetch(FEEDBACK_URL, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const text = await res.text();
+      let data = {}; try{ data = text? JSON.parse(text):{}; }catch{}
+
+      if (!res.ok || data.ok === false) {
+        throw new Error(humanizeError(res.status, text, data));
+      }
+
+      const btn = document.querySelector(`#events-table button[data-idx="${fbIdx}"]`);
+      if (btn) { btn.textContent = "Đã gửi"; btn.disabled = true; }
+      document.getElementById("fb-modal").classList.add("hidden");
+
+      if (data.fine_tune_triggered) {
+        console.log("[feedback] fine-tune triggered:", data.fine_tune_reason);
+      }
+    } catch (e) {
+      console.error("[feedback] submit error:", e);
+      alert("Gửi feedback lỗi: " + (e?.message || e));
+    } finally {
+      btnSend.disabled = false;
+      btnSend.textContent = btnTextBak;
+    }
+  };
+
+  /** Init */
+  checkMe();
+</script>
+
+</body>
+</html>
